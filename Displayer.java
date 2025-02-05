@@ -127,11 +127,17 @@ public class Displayer
 			{
 			    public void adjustmentValueChanged(AdjustmentEvent event)
 				{
-			    	boolean still_changing = event.getValueIsAdjusting();
-			    	if(still_changing == false)
+			    	if(!mouse_changing_scrollbar)
 			    	{
-				        int position = event.getValue();
-				        System.out.println("Position of xscrollbar is now " + position);
+			    	    boolean still_changing = event.getValueIsAdjusting();
+			    	    if(still_changing == false)
+			    	    {
+				            int position = event.getValue();
+				            //System.out.println("Position of xscrollbar is now " + position);
+				            yposition  = position;
+				            yposition /= 98;
+			    	    }
+			    	    image_canvas.repaint();
 			    	}
 				}
 			};		
@@ -142,11 +148,17 @@ public class Displayer
 			{
 			    public void adjustmentValueChanged(AdjustmentEvent event)
 				{
-			    	boolean still_changing = event.getValueIsAdjusting();
-			    	if(still_changing == false)
+			    	if(!mouse_changing_scrollbar)
 			    	{
-				        int position = event.getValue();
-				        System.out.println("Position of yscrollbar is now " + position);
+			    	    boolean still_changing = event.getValueIsAdjusting();
+			    	    if(still_changing == false)
+			    	    {
+				            int position = event.getValue();
+				            //System.out.println("Position of yscrollbar is now " + position);
+				            yposition  = position;
+				            yposition /= 98;
+			    	    }
+			    	    image_canvas.repaint();
 			    	}
 				}
 			};		
@@ -163,65 +175,38 @@ public class Displayer
 			{
 				public void mouseClicked(MouseEvent event)
 				{
+					int x          = event.getX();
+					int y          = event.getY();
+					
 					/*
-					int    previous_x         = x;
-					int    previous_y         = y;
-					int    value;
+					int range     = scaled_xdim - canvas_xdim;
+					image_x_offset += x;
+					image_x_offset -= canvas_xdim / 2;
+					if(image_x_offset > range)
+						image_x_offset = (int)range;
+					else if(image_x_offset < 0)
+						image_x_offset = 0;
+					xposition       = image_x_offset;
+					xposition      /= range;
+					int x_value     = (int)(xposition * 98.);
 					
-					x          = event.getX();
-					y          = event.getY();
 					
-					double x_delta = x - previous_x;
-					int    x_range = scaled_xdim - canvas_xdim;
-					image_x_offset = (int)(x_range - (1. - xposition) * x_range);
-					if(image_x_offset + x_delta < 0)
-					{
-					    x              = canvas_xdim / 2;
-					    image_x_offset = 0;
-					    value          = 0;
-					    xposition      = 0.;
-					}
-					else if(image_x_offset + x_delta > x_range)
-					{
-						x              = canvas_xdim / 2;
-					    image_x_offset = x_range;
-					    value          = 98;
-					    xposition      = 1.;	
-					}
-					else
-					{
-						x              = canvas_xdim / 2;
-					    image_x_offset += x_delta;
-					    xposition       = image_x_offset / x_range;
-					    value           = (int)(98. * xposition);
-					}
-					xscrollbar.setValue(value);
+					range           = scaled_ydim - canvas_ydim;
+					image_y_offset += y;
+					image_y_offset -= canvas_ydim / 2;
+					if(image_y_offset > range)
+						image_y_offset = (int)range;
+					else if(image_y_offset < 0)
+						image_y_offset = 0;
+					yposition       = image_y_offset;
+					yposition      /= range;
+					int y_value     = (int)(yposition * 98.);
 					
-					double y_delta = y - previous_y;
-					int    y_range = scaled_ydim - canvas_ydim;
-					image_y_offset = (int)(y_range - (1. - yposition) * y_range);
-					if(image_y_offset + y_delta < 0)
-					{
-					    y              = canvas_ydim / 2;
-					    image_y_offset = 0;
-					    value          = 0;
-					    yposition      = 0.;
-					}
-					else if(image_y_offset + y_delta > y_range)
-					{
-						y              = canvas_ydim / 2;
-					    image_y_offset = y_range;
-					    value          = 98;
-					    yposition      = 1.;	
-					}
-					else
-					{
-						y = canvas_ydim / 2;
-					    image_y_offset += y_delta;
-					    yposition       = image_y_offset / y_range;
-					    value           = (int)(98. * yposition);
-					}
-					yscrollbar.setValue(value);
+					
+					mouse_changing_scrollbar = true;
+					xscrollbar.setValue(x_value);
+					yscrollbar.setValue(y_value);
+					mouse_changing_scrollbar = false;
 					*/
 					
 					int button = event.getButton();
@@ -245,11 +230,11 @@ public class Displayer
 						System.out.println("Zooming out at x = " + x + ", y = " + y);
 						scale *= 0.9;
 						
-						if(scale * image_xdim > canvas_xdim && xscrollbar.isEnabled())
+						if(scale * image_xdim < canvas_xdim && xscrollbar.isEnabled())
 						{
 						    xscrollbar.setEnabled(false);   	
 						}
-						if(scale * image_ydim > canvas_ydim && yscrollbar.isEnabled())
+						if(scale * image_ydim < canvas_ydim && yscrollbar.isEnabled())
 						{
 							yscrollbar.setEnabled(false); 	
 						}
@@ -280,6 +265,40 @@ public class Displayer
 					if(end_x != start_x || end_y != start_y)
 					{
 						System.out.println("Moved from x = " + start_x + ", y = " + start_y + " to x = " + end_x + ", y = " + end_y);
+						
+						
+						int delta_x     = end_x - start_x;
+						scaled_xdim     = (int)(scale * image_xdim);
+						double range    = scaled_xdim - canvas_xdim;
+						image_x_offset  = (int)(range * xposition);
+						image_x_offset += delta_x;
+						if(image_x_offset > range)
+							image_x_offset = (int)range;
+						else if(image_x_offset < 0)
+							image_x_offset = 0;
+						
+						xposition       = image_x_offset;
+						xposition      /= range;
+						int x_value     = (int)(xposition * 98.);
+						
+						int delta_y     = end_y - start_y;
+						scaled_ydim     = (int)(scale * image_ydim);
+						range           = scaled_ydim - canvas_ydim;
+						image_y_offset  = (int)(range * yposition);
+						image_y_offset += delta_y;
+						if(image_y_offset > range)
+							image_y_offset = (int)range;
+						else if(image_y_offset < 0)
+							image_y_offset = 0;
+						
+						yposition       = image_y_offset;
+						yposition      /= range;
+						int y_value     = (int)(yposition * 98.);
+						mouse_changing_scrollbar = true;
+						xscrollbar.setValue(x_value);
+						yscrollbar.setValue(y_value);
+						mouse_changing_scrollbar = false;
+						image_canvas.repaint();
 					}
 				}
 			};
@@ -322,8 +341,6 @@ public class Displayer
         {
         	if(scale == 1.)
 			{
-        		scaled_xdim = image_xdim;
-        		scaled_ydim = image_ydim;
 				if(image_xdim <= canvas_xdim && image_ydim <= canvas_ydim)
 				{
 					image = original_image;
@@ -346,9 +363,12 @@ public class Displayer
 				}
 				else
 				{
-					int upper_x     = x - canvas_xdim / 2;
-					int upper_y     = y - canvas_ydim / 2;
-					image           = original_image.getSubimage(upper_x + image_x_offset, upper_y + image_y_offset, canvas_xdim, canvas_ydim);
+					double range       = image_xdim - canvas_xdim;
+					image_x_offset  = (int)(range * xposition);
+					range           = image_ydim - canvas_ydim;
+					image_y_offset  = (int)(range * yposition);
+					
+					image           = original_image.getSubimage(image_x_offset, image_y_offset, canvas_xdim, canvas_ydim);
 					canvas_x_offset = 0;
 					canvas_y_offset = 0;
 				}
@@ -390,15 +410,12 @@ public class Displayer
 				}
 				else
 				{
-					int upper_x     = x - canvas_xdim / 2;
-					int upper_y     = y - canvas_ydim / 2;
+					double range       = scaled_xdim - canvas_xdim;
+					image_x_offset  = (int)(range * xposition);
+					range           = scaled_ydim - canvas_ydim;
+					image_y_offset  = (int)(range * yposition);
 					
-					int delta       = scaled_xdim - canvas_xdim;
-					image_x_offset  = delta / 2;
-					delta           = scaled_ydim - canvas_ydim;
-					image_y_offset  = delta / 2;
-					
-					image           = scaled_image.getSubimage(upper_x + image_x_offset, upper_y + image_y_offset, canvas_xdim, canvas_ydim);
+					image           = scaled_image.getSubimage(image_x_offset, image_y_offset, canvas_xdim, canvas_ydim);
 					canvas_x_offset = 0;
 					canvas_y_offset = 0;
 				}
